@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="MK BOT — a voice-first cybernetic plasma control terminal with camera gesture input.">
+<title>MK BOT // Plasma Control Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#030712;
+  --panel-bg:rgba(7,18,35,.78);
+  --panel-border:rgba(6,182,212,.22);
+  --panel-border-soft:rgba(6,182,212,.12);
+  --cyan:#22d3ee;
+  --cyan-soft:#67e8f9;
+  --cyan-dim:rgba(6,182,212,.2);
+  --slate:#64748b;
+  --slate-dim:#475569;
+  --emerald:#34d399;
+  --violet:#a78bfa;
+  --pink:#f472b6;
+  --ink:#e2e8f0;
+  --ink-bright:#f8fafc;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+  --display:"Space Grotesk",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink)}
+body{
+  min-height:100svh;
+  font-family:var(--mono);
+  background:
+    radial-gradient(circle at 50% 44%,rgba(8,47,73,.22),transparent 34%),
+    var(--bg);
+  position:relative;
+  overflow-x:hidden;
+}
+body:focus-visible, button:focus-visible, [role="button"]:focus-visible, input:focus-visible{
+  outline:2px solid var(--cyan-soft); outline-offset:2px;
+}
+.terminal-noise{
+  position:fixed; inset:0; pointer-events:none; opacity:.2; z-index:0;
+  background-image:linear-gradient(rgba(6,182,212,.035) 1px,transparent 1px),
+                    linear-gradient(90deg,rgba(6,182,212,.035) 1px,transparent 1px);
+  background-size:42px 42px;
+  mask-image:linear-gradient(black,transparent 92%);
+}
+.terminal-container{
+  position:relative; z-index:1; max-width:1600px; margin:0 auto;
+  padding:18px clamp(14px,3vw,46px) 30px;
+}
+
+/* header */
+.terminal-header{
+  display:flex; align-items:center; justify-content:space-between; gap:20px;
+  border-bottom:1px solid var(--panel-border-soft); padding-bottom:15px; flex-wrap:wrap;
+}
+.brand-lockup{display:flex; align-items:center; gap:12px}
+.brand-mark{
+  display:grid; place-items:center; height:38px; width:38px; flex:0 0 38px;
+  border:1px solid rgba(6,182,212,.6); color:var(--cyan-soft);
+  box-shadow:0 0 20px rgba(6,182,212,.2), inset 0 0 14px rgba(6,182,212,.12);
+  transform:rotate(45deg);
+}
+.brand-mark svg{transform:rotate(-45deg)}
+.eyebrow{color:var(--slate); font:500 9px/1.2 var(--mono); letter-spacing:.19em; text-transform:uppercase}
+.brand-lockup h1{margin:4px 0 0; color:var(--ink-bright); font:800 clamp(22px,3vw,32px)/.95 var(--display); letter-spacing:.14em}
+.brand-lockup h1 span{color:var(--cyan); text-shadow:0 0 20px rgba(34,211,238,.4)}
+.header-readouts{display:flex; flex-wrap:wrap; align-items:center; gap:15px; color:var(--slate); font:500 9px var(--mono); letter-spacing:.1em}
+.header-readouts span{display:inline-flex; align-items:center; gap:6px}
+.power-state{display:inline-flex; align-items:center; gap:7px; cursor:pointer; color:var(--emerald); font-weight:700; transition:color .2s,transform .2s; background:none; border:0; font-family:var(--mono); font-size:9px; letter-spacing:.1em; padding:0}
+.power-state:hover{transform:translateY(-1px)}
+.power-state.is-off{color:#f87171}
+.power-orb{width:7px; height:7px; border-radius:999px; background:currentColor; box-shadow:0 0 12px currentColor}
+
+/* shared panel look */
+.chat-console,.hud-panel{
+  border:1px solid var(--panel-border); background:var(--panel-bg);
+  box-shadow:0 0 28px rgba(6,182,212,.07), inset 0 1px rgba(148,163,184,.06);
+  backdrop-filter:blur(18px);
+}
+.chat-console{margin-top:17px; border-radius:12px; overflow:hidden}
+.hud-panel{border-radius:10px; overflow:hidden}
+.console-label,.hud-panel-header{
+  display:flex; align-items:center; min-height:35px; gap:8px; padding:0 13px;
+  color:var(--cyan-soft); font:600 9px var(--mono); letter-spacing:.14em;
+}
+.hud-panel-header{justify-content:space-between; border-bottom:1px solid var(--panel-border-soft)}
+.console-label-line{height:1px; flex:1; background:linear-gradient(90deg,rgba(6,182,212,.25),transparent)}
+.hud-panel-header .row{display:flex; align-items:center; gap:8px}
+
+/* chat */
+.chat-stream{max-height:190px; overflow-y:auto; padding:13px 14px 8px; scrollbar-width:thin; scrollbar-color:rgba(6,182,212,.3) transparent}
+.chat-message{display:flex; align-items:flex-start; gap:10px; padding:9px 0; font-size:12px; line-height:1.45}
+.chat-message p{margin:0; color:#cbd5e1}
+.chat-avatar{flex:0 0 30px; padding-top:2px; color:var(--cyan); font:600 9px var(--mono)}
+.chat-message-user .chat-avatar{color:#f9a8d4}
+.chat-message-user p{color:#fbcfe8}
+.chat-source{margin-left:auto; color:var(--slate-dim); font:500 8px var(--mono); letter-spacing:.12em; white-space:nowrap; padding-left:8px}
+
+.voice-console-row{display:flex; align-items:stretch; flex-direction:column; gap:10px; border-top:1px solid var(--panel-border-soft); padding:10px 13px}
+@media(min-width:640px){.voice-console-row{flex-direction:row; align-items:center}}
+.mic-surface{
+  display:flex; align-items:center; gap:10px; min-width:0; padding:8px 10px; cursor:pointer;
+  border:1px solid rgba(6,182,212,.25); background:rgba(6,182,212,.05);
+  transition:border-color .2s,background .2s,box-shadow .2s;
+}
+.mic-surface:hover,.mic-surface.is-listening{border-color:rgba(34,211,238,.75); background:rgba(6,182,212,.11); box-shadow:0 0 20px rgba(6,182,212,.14)}
+.mic-icon{display:grid; place-items:center; width:32px; height:32px; flex:0 0 32px; color:var(--cyan-soft); border:1px solid rgba(103,232,249,.3)}
+.mic-surface strong{display:block; margin-top:4px; color:#e0f2fe; font:600 10px var(--mono); letter-spacing:.08em}
+.voice-wave{display:flex; align-items:center; gap:2px; margin-left:auto; height:22px}
+.voice-wave i{width:2px; height:9px; background:var(--cyan); display:block; animation:wave 1s ease-in-out infinite; opacity:.35}
+.voice-wave.is-active i{opacity:1}
+.voice-wave i:nth-child(2),.voice-wave i:nth-child(6){animation-delay:-.4s; height:15px}
+.voice-wave i:nth-child(3),.voice-wave i:nth-child(5){animation-delay:-.2s; height:20px}
+.voice-wave i:nth-child(4){height:12px}
+@keyframes wave{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+.command-input-wrap{display:flex; align-items:center; gap:8px; flex:1; min-width:0; padding:0 8px; border-bottom:1px solid rgba(100,116,139,.25)}
+.command-input-wrap input{width:100%; border:0; outline:0; background:transparent; color:#e2e8f0; font-size:12px; padding:11px 0; font-family:var(--mono)}
+.command-input-wrap input::placeholder{color:var(--slate-dim)}
+.input-hint{color:var(--slate-dim); font:9px var(--mono)}
+.transcript-line{display:flex; gap:10px; border-top:1px solid rgba(6,182,212,.1); padding:8px 14px; color:var(--slate); font:9px var(--mono); letter-spacing:.1em}
+.transcript-line strong{color:#a5f3fc; font-weight:400}
+
+/* grid */
+.terminal-grid{
+  display:grid; grid-template-columns:minmax(190px,1fr) minmax(390px,2fr) minmax(190px,1fr);
+  gap:18px; align-items:start; margin-top:18px;
+}
+@media(max-width:1050px){.terminal-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){.terminal-grid{display:flex; flex-direction:column}}
+.side-stack{display:flex; flex-direction:column; gap:18px; width:100%}
+
+/* camera / gesture panel */
+.camera-viewport{
+  position:relative; height:174px; overflow:hidden; cursor:pointer;
+  background:radial-gradient(circle at 50% 55%,rgba(6,182,212,.14),transparent 45%), #030b18;
+  border:0;
+}
+.camera-viewport video{width:100%; height:100%; object-fit:cover; opacity:.8; transform:scaleX(-1); display:block}
+.camera-scanline{position:absolute; inset:0; pointer-events:none; background:linear-gradient(transparent 50%,rgba(34,211,238,.08) 51%,transparent 52%) 0 0/100% 8px; opacity:.5}
+.camera-corners{position:absolute; inset:15px; border:1px solid rgba(103,232,249,.19); pointer-events:none}
+.camera-overlay-label{position:absolute; bottom:9px; left:12px; display:flex; gap:5px; align-items:center; color:var(--cyan-soft); font:8px var(--mono)}
+.camera-placeholder{position:absolute; inset:0; display:grid; place-items:center; text-align:center; color:var(--slate-dim); font:9px var(--mono); letter-spacing:.12em; line-height:1.8; padding:0 20px}
+.hud-live-dot{color:var(--emerald); font-size:8px}
+.hud-live-dot.is-off{color:#f87171}
+.readout-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; border-top:1px solid var(--panel-border-soft); padding:12px; font:10px var(--mono); text-transform:uppercase; letter-spacing:.1em}
+.readout-grid .label{color:var(--slate)}
+.readout-grid strong{display:block; margin-top:4px; color:var(--cyan-soft)}
+.panel-footnote{display:flex; align-items:center; gap:8px; border-top:1px solid var(--panel-border-soft); padding:8px 12px; font:10px var(--mono); text-transform:uppercase; letter-spacing:.1em; color:var(--slate)}
+
+/* gesture matrix */
+.gesture-list{padding:5px 12px 10px}
+.gesture-row{display:grid; grid-template-columns:24px 1fr auto; align-items:center; gap:5px; padding:9px 2px; color:var(--slate); border-bottom:1px solid rgba(100,116,139,.1); font:9px var(--mono)}
+.gesture-row:last-child{border-bottom:0}
+.gesture-row.active{color:#a5f3fc}
+.gesture-row.active span:last-child{color:var(--emerald)}
+.gesture-glyph{font-size:15px}
+
+/* plasma */
+.plasma-column{min-width:0; width:100%; order:-1}
+@media(min-width:1051px){.plasma-column{order:0}}
+.plasma-topline{display:flex; align-items:center; justify-content:space-between; padding:4px 5px 0}
+.core-status{color:var(--emerald); font:9px var(--mono); letter-spacing:.1em}
+.core-status.is-off{color:#f87171}
+.core-status i{display:inline-block; width:5px; height:5px; margin-right:4px; border-radius:50%; background:currentColor; box-shadow:0 0 8px currentColor}
+.plasma-stage{position:relative; display:grid; place-items:center; min-height:380px}
+@media(min-width:520px){.plasma-stage{min-height:465px}}
+.plasma-stage::before{
+  content:""; position:absolute; width:52%; aspect-ratio:1/1; border:1px solid rgba(6,182,212,.16);
+  border-radius:50%; box-shadow:0 0 80px rgba(6,182,212,.09), inset 0 0 50px rgba(6,182,212,.06);
+}
+.plasma-crosshair{position:absolute; left:50%; width:1px; height:20px; background:rgba(103,232,249,.5)}
+.plasma-crosshair-top{top:6px}
+.plasma-crosshair-bottom{bottom:6px}
+#plasmaCanvas{display:block; touch-action:none; cursor:grab}
+#plasmaCanvas:active{cursor:grabbing}
+.plasma-caption{position:absolute; bottom:28px; display:flex; flex-direction:column; align-items:center; gap:4px; pointer-events:none}
+.plasma-caption strong{color:#e0f2fe; font:700 13px var(--display); letter-spacing:.14em}
+.plasma-footer{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; border-top:1px solid var(--panel-border-soft); padding:10px 5px; color:var(--slate); font:8px var(--mono); letter-spacing:.1em}
+.plasma-footer strong{color:#a5f3fc; font-weight:500}
+
+/* telemetry */
+.metric-block{padding:13px; border-bottom:1px solid rgba(100,116,139,.1)}
+.metric-block:last-child{border-bottom:0}
+.metric-block > div:first-child{display:flex; align-items:center; justify-content:space-between; color:var(--slate); font:8px var(--mono); letter-spacing:.1em}
+.metric-block strong{color:#dbeafe; font:700 15px var(--mono)}
+.metric-block small{margin-left:2px; color:var(--slate); font-size:8px}
+.metric-text{max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:10px!important}
+.metric-track{height:2px; margin-top:8px; background:#172033}
+.metric-track i{display:block; height:100%; background:var(--cyan); box-shadow:0 0 9px var(--cyan); transition:width .3s}
+.track-emerald{background:var(--emerald)!important; box-shadow:0 0 9px var(--emerald)!important}
+.track-violet{background:var(--violet)!important; box-shadow:0 0 9px var(--violet)!important}
+.track-pink{background:var(--pink)!important; box-shadow:0 0 9px var(--pink)!important}
+
+/* voice protocols */
+.protocol-line{display:grid; grid-template-columns:22px 1fr; gap:8px; padding:11px 13px; border-bottom:1px solid rgba(100,116,139,.1); color:var(--slate); font:9px var(--mono)}
+.protocol-line:last-child{border-bottom:0}
+.protocol-line > span{color:#0e7490}
+.protocol-line p{margin:0; color:#cbd5e1}
+.protocol-line small{display:block; margin-top:4px; color:var(--slate-dim); font-size:8px}
+
+/* event log (merged from plasma-control file) */
+.event-log{max-height:130px; overflow-y:auto; padding:10px 13px; font:9px var(--mono); line-height:1.8; color:var(--slate); scrollbar-width:thin; scrollbar-color:rgba(6,182,212,.3) transparent}
+.event-log div{white-space:pre-wrap; word-break:break-word}
+.event-log time{color:#0e7490; margin-right:6px}
+
+/* footer */
+.terminal-footer{
+  display:flex; align-items:flex-start; flex-direction:column; gap:5px; justify-content:space-between;
+  margin-top:20px; padding:13px 3px 0; color:#334155; font:8px var(--mono); letter-spacing:.13em; border-top:1px solid var(--panel-border-soft);
+}
+@media(min-width:640px){.terminal-footer{flex-direction:row; align-items:center}}
+.terminal-footer .status-on{color:var(--emerald)}
+.terminal-footer .status-off{color:#f87171}
+
+button{cursor:pointer}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms!important; animation-iteration-count:1!important; transition-duration:.001ms!important}
+}
+</style>
+</head>
+<body>
+<div class="terminal-noise"></div>
+<div class="terminal-container">
+
+  <header class="terminal-header">
+    <div class="brand-lockup">
+      <div class="brand-mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+      </div>
+      <div>
+        <p class="eyebrow">Cybernetic voice + vision interface</p>
+        <h1>MK <span>BOT</span></h1>
+      </div>
+    </div>
+    <div class="header-readouts">
+      <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.247 7.761a6 6 0 0 1 0 8.478"/><path d="M19.075 4.933a10 10 0 0 1 0 14.134"/><path d="M4.925 19.067a10 10 0 0 1 0-14.134"/><path d="M7.753 16.239a6 6 0 0 1 0-8.478"/><circle cx="12" cy="12" r="2"/></svg>Local node 01</span>
+      <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>All processing stays on-device</span>
+      <button type="button" class="power-state" id="powerToggle" aria-pressed="true">
+        <span class="power-orb"></span> System <span id="powerLabel">ON</span>
+      </button>
+    </div>
+  </header>
+
+  <section class="chat-console">
+    <div class="console-label">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19h8"/><path d="m4 17 6-6-6-6"/></svg>
+      <span>MK BOT / Live command stream</span>
+      <span class="console-label-line"></span>
+      <span id="linkStatus" style="color:var(--emerald)">Voice link ready</span>
+    </div>
+    <div class="chat-stream" id="chatStream">
+      <div class="chat-message chat-message-bot">
+        <span class="chat-avatar">MK</span>
+        <p>Plasma core initialized. Camera and voice channels are idle — press the panels below or speak a command to begin.</p>
+        <span class="chat-source">SYSTEM</span>
+      </div>
+    </div>
+    <div class="voice-console-row">
+      <div class="mic-surface" id="micSurface" role="button" tabindex="0" data-testid="voice-command-console">
+        <div class="mic-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect width="6" height="13" x="9" y="2" rx="3"/></svg>
+        </div>
+        <div>
+          <span class="eyebrow">Voice command console</span>
+          <strong id="micLabel">Tap to speak a command</strong>
+        </div>
+        <div class="voice-wave" id="voiceWave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="command-input-wrap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
+        <input id="commandInput" placeholder="or type a command and press Enter" autocomplete="off">
+        <span class="input-hint">ENTER</span>
+      </div>
+    </div>
+    <div class="transcript-line">
+      <span>LAST SIGNAL</span>
+      <strong>&ldquo;<span id="lastSignal">awaiting input</span>&rdquo;</strong>
+    </div>
+    <div class="transcript-line">
+      <span>SEARCH CONTEXT</span>
+      <strong id="searchContext">none yet — say &ldquo;open &lt;site&gt;&rdquo; first</strong>
+    </div>
+  </section>
+
+  <section class="terminal-grid">
+    <div class="side-stack">
+      <section class="hud-panel" data-testid="gesture-camera-panel">
+        <div class="hud-panel-header">
+          <div class="row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"/><circle cx="12" cy="13" r="3"/></svg>
+            <span>Vision channel</span>
+          </div>
+          <span class="hud-live-dot is-off" id="camStatusDot">VISION OFFLINE</span>
+        </div>
+        <button type="button" class="camera-viewport" id="cameraViewport" aria-pressed="false">
+          <video id="video" autoplay muted playsinline></video>
+          <div class="camera-scanline"></div>
+          <div class="camera-corners"></div>
+          <div class="camera-placeholder" id="camPlaceholder">CAMERA OFFLINE<br>TAP TO START VISION FEED</div>
+          <div class="camera-overlay-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
+            Hand signal feed
+          </div>
+          <canvas id="sampleCanvas" width="32" height="24" style="display:none"></canvas>
+        </button>
+        <div class="readout-grid">
+          <div><span class="label">Gesture</span><strong id="gestureLabel">SCANNING</strong></div>
+          <div><span class="label">Hand vector</span><strong id="handVector">X -- / Y -- / Z --</strong></div>
+        </div>
+        <div class="panel-footnote">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+          Gesture drives the plasma field, never the mouse
+        </div>
+      </section>
+
+      <section class="hud-panel" data-testid="command-history-panel">
+        <div class="hud-panel-header">
+          <div class="row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>Hand command matrix</span>
+          </div>
+          <span style="color:var(--emerald)">LIVE</span>
+        </div>
+        <div class="gesture-list" id="gestureList">
+          <div class="gesture-row" data-gesture="OPEN HAND"><span class="gesture-glyph">✋</span><span>Open hand</span><span>READY</span></div>
+          <div class="gesture-row" data-gesture="PINCH"><span class="gesture-glyph">🤏</span><span>Pinch</span><span>READY</span></div>
+          <div class="gesture-row" data-gesture="FIST"><span class="gesture-glyph">✊</span><span>Fist</span><span>READY</span></div>
+          <div class="gesture-row" data-gesture="THUMB UP"><span class="gesture-glyph">👍</span><span>Thumb up</span><span>READY</span></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="plasma-column">
+      <div class="plasma-topline">
+        <span class="eyebrow"><svg style="vertical-align:-2px" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z"/></svg> Core object / plasma field</span>
+        <span class="core-status" id="coreStatus"><i></i>ENERGY STABLE</span>
+      </div>
+      <div class="plasma-stage" data-testid="plasma-ball-stage">
+        <div class="plasma-crosshair plasma-crosshair-top"></div>
+        <div class="plasma-crosshair plasma-crosshair-bottom"></div>
+        <canvas id="plasmaCanvas" aria-label="Animated plasma ball" width="448" height="448" style="width:min(60vw,430px);height:min(60vw,430px)"></canvas>
+        <div class="plasma-caption">
+          <span style="font:10px var(--mono); letter-spacing:.28em; color:var(--cyan)">FIELD RESPONSE</span>
+          <strong id="plasmaCaptionGesture">OPEN HAND</strong>
+          <span style="font:10px var(--mono); letter-spacing:.2em; color:var(--slate)">HAND + VOICE COMMAND CHANNEL</span>
+        </div>
+      </div>
+      <div class="plasma-footer">
+        <span>GESTURE RESPONSE <strong id="footerGesture">OPEN HAND</strong></span>
+        <span>ROTATION × <span id="footerRotation">1.0</span></span>
+        <span>ZOOM × <span id="footerZoom">1.0</span></span>
+        <span>CORE TEMP <strong id="footerTemp">3,702K</strong></span>
+      </div>
+    </section>
+
+    <div class="side-stack">
+      <section class="hud-panel" data-testid="system-status-panel">
+        <div class="hud-panel-header">
+          <div class="row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
+            <span>System telemetry</span>
+          </div>
+          <span style="color:var(--cyan)" id="telemetryState">NOMINAL</span>
+        </div>
+        <div class="metric-block">
+          <div><span>Neural core</span><strong id="mNeural">98.4<small>%</small></strong></div>
+          <div class="metric-track"><i id="tNeural" style="width:98%"></i></div>
+        </div>
+        <div class="metric-block">
+          <div><span>Microphone</span><strong class="metric-text" id="mMic">IDLE</strong></div>
+          <div class="metric-track"><i class="track-emerald" id="tMic" style="width:8%"></i></div>
+        </div>
+        <div class="metric-block">
+          <div><span>Gesture vision</span><strong class="metric-text" id="mGesture">IDLE</strong></div>
+          <div class="metric-track"><i class="track-violet" id="tGesture" style="width:8%"></i></div>
+        </div>
+        <div class="metric-block">
+          <div><span>Response latency</span><strong id="mLatency">042<small>ms</small></strong></div>
+          <div class="metric-track"><i class="track-pink" id="tLatency" style="width:22%"></i></div>
+        </div>
+      </section>
+
+      <section class="hud-panel" data-testid="voice-protocol-panel">
+        <div class="hud-panel-header">
+          <div class="row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v2"/><path d="M12 2v2"/><path d="M17 20v2"/><path d="M17 2v2"/><path d="M2 12h2"/><path d="M2 17h2"/><path d="M2 7h2"/><path d="M20 12h2"/><path d="M20 17h2"/><path d="M20 7h2"/><path d="M7 20v2"/><path d="M7 2v2"/><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="8" height="8" x="8" y="8" rx="1"/></svg>
+            <span>Voice protocols</span>
+          </div>
+        </div>
+        <div class="protocol-line"><span>01</span><p>&ldquo;Open &lt;site&gt;&rdquo;<small>YouTube, Google, GitHub, Wikipedia, ChatGPT, a domain like amazon.in — sets the active search context too</small></p></div>
+        <div class="protocol-line"><span>02</span><p>&ldquo;Search &lt;something&gt;&rdquo;<small>searches within whichever site you last opened</small></p></div>
+        <div class="protocol-line"><span>02b</span><p>&ldquo;Search &lt;site&gt; for &hellip;&rdquo;<small>overrides context, e.g. &ldquo;search amazon for headphones&rdquo;</small></p></div>
+        <div class="protocol-line"><span>03</span><p>&ldquo;Stop system&rdquo; / &ldquo;Start system&rdquo;<small>powers the terminal off or on</small></p></div>
+        <div class="protocol-line"><span>04</span><p>&ldquo;Rotate plasma&rdquo; / &ldquo;Zoom in / out&rdquo;<small>drives the core field</small></p></div>
+        <div class="protocol-line"><span>05</span><p>&ldquo;Status report&rdquo;<small>reads back live telemetry</small></p></div>
+      </section>
+
+      <section class="hud-panel" data-testid="event-log-panel">
+        <div class="hud-panel-header">
+          <div class="row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <span>System event log</span>
+          </div>
+          <button type="button" id="clearLogBtn" style="background:none;border:0;color:var(--slate);font:8px var(--mono);letter-spacing:.1em;text-decoration:underline">CLEAR</button>
+        </div>
+        <div class="event-log" id="eventLog"></div>
+      </section>
+    </div>
+  </section>
+
+  <footer class="terminal-footer">
+    <span>MK BOT CONTROL TERMINAL</span>
+    <span>VOICE + HAND GESTURE INTERFACE</span>
+    <span>BUILD 08.01 / <span id="footerBuildState" class="status-on">ACTIVE</span></span>
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $ = id => document.getElementById(id);
+
+/* ---------- state ---------- */
+const state = {
+  power:true,
+  cameraOn:false,
+  listening:false,
+  gesture:"OPEN HAND",
+  handX:50, handY:50, handZ:20,
+  rotationMult:1.0,
+  zoomMult:1.0,
+  coreTemp:3702,
+  neural:98.4,
+  mic:0,
+  visionScore:0,
+  latency:42,
+  lastSiteKey:null,
+  lastSiteLabel:null
+};
+
+/* ---------- helpers ---------- */
+function eventLog(text){
+  const el = $('eventLog');
+  const t = document.createElement('div');
+  const time = document.createElement('time');
+  time.textContent = new Date().toLocaleTimeString();
+  t.appendChild(time);
+  t.appendChild(document.createTextNode(text));
+  el.appendChild(t);
+  el.scrollTop = el.scrollHeight;
+}
+function addChat(who, text, source){
+  const stream = $('chatStream');
+  const row = document.createElement('div');
+  row.className = 'chat-message ' + (who === 'YOU' ? 'chat-message-user' : 'chat-message-bot');
+  const avatar = document.createElement('span');
+  avatar.className = 'chat-avatar';
+  avatar.textContent = who;
+  const p = document.createElement('p');
+  p.textContent = text;
+  const src = document.createElement('span');
+  src.className = 'chat-source';
+  src.textContent = source || (who === 'YOU' ? 'YOU' : 'AI LINK');
+  row.appendChild(avatar); row.appendChild(p); row.appendChild(src);
+  stream.appendChild(row);
+  stream.scrollTop = stream.scrollHeight;
+}
+// Adds a bot chat bubble containing a real, clickable <a>. Clicking it is a
+// direct user gesture, so it always opens even when an automatic popup was blocked.
+function addChatLink(url, label){
+  const stream = $('chatStream');
+  const row = document.createElement('div');
+  row.className = 'chat-message chat-message-bot';
+  const avatar = document.createElement('span');
+  avatar.className = 'chat-avatar';
+  avatar.textContent = 'MK';
+  const p = document.createElement('p');
+  p.appendChild(document.createTextNode('Tap to open: '));
+  const a = document.createElement('a');
+  a.href = url; a.target = '_blank'; a.rel = 'noopener';
+  a.textContent = label || url;
+  a.style.color = 'var(--cyan-soft)';
+  p.appendChild(a);
+  const src = document.createElement('span');
+  src.className = 'chat-source';
+  src.textContent = 'LINK';
+  row.appendChild(avatar); row.appendChild(p); row.appendChild(src);
+  stream.appendChild(row);
+  stream.scrollTop = stream.scrollHeight;
+}
+// Attempts to open a new tab. Voice-triggered opens fire from an async
+// speech-recognition callback, which most browsers don't treat as a genuine
+// user gesture, so the popup blocker silently kills it — window.open()
+// returns null/undefined in that case, which we detect and fall back on.
+function openLink(url){
+  let win = null;
+  try{ win = window.open(url, '_blank', 'noopener'); }catch(e){ win = null; }
+  return !!win;
+}
+function speak(text){
+  if(!('speechSynthesis' in window)) return;
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = .98; u.pitch = 1.05;
+    speechSynthesis.speak(u);
+  }catch(e){/* speech synth unavailable */}
+}
+function setGestureRow(name){
+  document.querySelectorAll('.gesture-row').forEach(row=>{
+    const active = row.dataset.gesture === name;
+    row.classList.toggle('active', active);
+    row.lastElementChild.textContent = active ? 'DETECTED' : 'READY';
+  });
+}
+function applyGesture(name, {silent}={}){
+  state.gesture = name;
+  $('gestureLabel').textContent = name;
+  $('plasmaCaptionGesture').textContent = name;
+  $('footerGesture').textContent = name;
+  setGestureRow(name);
+  if(name === 'PINCH')      { state.zoomMult = 0.75; state.rotationMult = 0.6; }
+  else if(name === 'FIST')  { state.zoomMult = 1.0;  state.rotationMult = 0.05; }
+  else if(name === 'THUMB UP'){ state.zoomMult = 1.15; state.rotationMult = 1.8; state.coreTemp += 90; }
+  else /* OPEN HAND */      { state.zoomMult = 1.0;  state.rotationMult = 1.0; }
+  if(!silent) eventLog('Gesture change: ' + name);
+}
+
+/* ---------- power toggle ---------- */
+function setPower(on){
+  state.power = on;
+  const btn = $('powerToggle');
+  btn.classList.toggle('is-off', !on);
+  btn.setAttribute('aria-pressed', String(on));
+  $('powerLabel').textContent = on ? 'ON' : 'OFF';
+  $('coreStatus').classList.toggle('is-off', !on);
+  $('coreStatus').childNodes[1].textContent = on ? 'ENERGY STABLE' : 'FIELD SUSPENDED';
+  $('telemetryState').textContent = on ? 'NOMINAL' : 'STANDBY';
+  $('footerBuildState').textContent = on ? 'ACTIVE' : 'INACTIVE';
+  $('footerBuildState').className = on ? 'status-on' : 'status-off';
+  $('linkStatus').textContent = on ? 'Voice link ready' : 'Voice link suspended';
+  $('linkStatus').style.color = on ? 'var(--emerald)' : '#f87171';
+  if(!on){
+    stopCamera();
+    stopVoice();
+  }
+  eventLog(on ? 'System powered on' : 'System powered down');
+}
+$('powerToggle').addEventListener('click', ()=> setPower(!state.power));
+
+/* ---------- camera + lightweight gesture heuristic ---------- */
+const video = $('video');
+const sampleCanvas = $('sampleCanvas');
+const sctx = sampleCanvas.getContext('2d', {willReadFrequently:true});
+let stream = null;
+let prevFrame = null;
+let sampleTimer = null;
+
+async function startCamera(){
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:{width:320,height:240}, audio:false});
+    video.srcObject = stream;
+    state.cameraOn = true;
+    $('cameraViewport').setAttribute('aria-pressed','true');
+    $('camPlaceholder').style.display = 'none';
+    $('camStatusDot').textContent = 'VISION LINKED';
+    $('camStatusDot').classList.remove('is-off');
+    addChat('MK','Vision channel connected. Watching for hand signals.');
+    eventLog('Camera connected');
+    sampleTimer = setInterval(sampleFrame, 140);
+  }catch(e){
+    addChat('MK','Camera could not be started — check browser/site permissions.');
+    eventLog('Camera error: ' + (e && e.message ? e.message : 'permission denied'));
+  }
+}
+function stopCamera(){
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
+  video.srcObject = null;
+  state.cameraOn = false;
+  prevFrame = null;
+  if(sampleTimer){ clearInterval(sampleTimer); sampleTimer = null; }
+  $('cameraViewport').setAttribute('aria-pressed','false');
+  $('camPlaceholder').style.display = 'grid';
+  $('camStatusDot').textContent = 'VISION OFFLINE';
+  $('camStatusDot').classList.add('is-off');
+  $('gestureLabel').textContent = 'SCANNING';
+  $('handVector').textContent = 'X -- / Y -- / Z --';
+  state.visionScore = 0;
+}
+$('cameraViewport').addEventListener('click', ()=>{
+  if(!state.power){ setPower(true); }
+  state.cameraOn ? stopCamera() : startCamera();
+});
+$('cameraViewport').addEventListener('keydown', e=>{
+  if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); $('cameraViewport').click(); }
+});
+
+// Downsamples the live video to a tiny 32x24 canvas and estimates motion/
+// brightness centroid — a lightweight, fully local stand-in for a real hand-
+// tracking model, used to drive the gesture readout and hand vector.
+function sampleFrame(){
+  if(!state.cameraOn || video.readyState < 2) return;
+  sctx.drawImage(video, 0, 0, 32, 24);
+  let frame;
+  try{ frame = sctx.getImageData(0,0,32,24).data; }catch(e){ return; }
+
+  let sumX=0, sumY=0, sumW=0, motion=0, brightSum=0;
+  if(prevFrame){
+    for(let y=0;y<24;y++){
+      for(let x=0;x<32;x++){
+        const i = (y*32+x)*4;
+        const bright = (frame[i]+frame[i+1]+frame[i+2])/3;
+        const prevBright = (prevFrame[i]+prevFrame[i+1]+prevFrame[i+2])/3;
+        const diff = Math.abs(bright - prevBright);
+        motion += diff;
+        brightSum += bright;
+        const w = bright; // brighter areas weigh more toward the centroid
+        sumX += x*w; sumY += y*w; sumW += w;
+      }
+    }
+  }
+  prevFrame = frame;
+  if(sumW === 0) return;
+
+  const cx = (sumX/sumW)/32*100;
+  const cy = (sumY/sumW)/24*100;
+  const avgBright = brightSum/(32*24);
+  const motionAvg = motion/(32*24);
+
+  state.handX = Math.round(cx);
+  state.handY = Math.round(cy);
+  state.handZ = Math.round(Math.min(100, motionAvg*6));
+  state.visionScore = Math.min(100, Math.round(motionAvg*8 + avgBright/6));
+
+  $('handVector').textContent = `X ${state.handX} / Y ${state.handY} / Z ${state.handZ}`;
+
+  let g;
+  if(motionAvg < 2.5) g = 'FIST';
+  else if(motionAvg < 7) g = 'OPEN HAND';
+  else if(motionAvg < 16) g = 'PINCH';
+  else g = 'THUMB UP';
+  if(g !== state.gesture) applyGesture(g, {silent:true});
+}
+
+/* ---------- voice ---------- */
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+
+function startVoice(){
+  if(!SpeechRecognition){
+    addChat('MK','Speech recognition is not supported in this browser.');
+    eventLog('Voice API unavailable');
+    return;
+  }
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+  recognition.onstart = ()=>{
+    state.listening = true;
+    $('micSurface').classList.add('is-listening');
+    $('voiceWave').classList.add('is-active');
+    $('micLabel').textContent = 'Listening…';
+    $('mMic').textContent = 'LISTENING';
+    eventLog('Voice recognition started');
+  };
+  recognition.onresult = e=>{
+    let finalText = '';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal) finalText += e.results[i][0].transcript;
+    }
+    if(finalText.trim()){
+      addChat('YOU', finalText.trim());
+      $('lastSignal').textContent = finalText.trim().toLowerCase();
+      handleCommand(finalText.trim());
+    }
+  };
+  recognition.onerror = e=> eventLog('Voice error: ' + e.error);
+  recognition.onend = ()=>{
+    state.listening = false;
+    $('micSurface').classList.remove('is-listening');
+    $('voiceWave').classList.remove('is-active');
+    $('micLabel').textContent = 'Tap to speak a command';
+    $('mMic').textContent = state.power ? 'READY' : 'IDLE';
+    recognition = null;
+  };
+  try{ recognition.start(); }catch(e){ /* already started */ }
+}
+function stopVoice(){
+  if(recognition){ recognition.stop(); }
+}
+function toggleVoice(){
+  if(!state.power){ setPower(true); }
+  state.listening ? stopVoice() : startVoice();
+}
+$('micSurface').addEventListener('click', toggleVoice);
+$('micSurface').addEventListener('keydown', e=>{
+  if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleVoice(); }
+});
+
+$('commandInput').addEventListener('keydown', e=>{
+  if(e.key !== 'Enter') return;
+  const val = $('commandInput').value.trim();
+  if(!val) return;
+  addChat('YOU', val);
+  $('lastSignal').textContent = val.toLowerCase();
+  $('commandInput').value = '';
+  handleCommand(val);
+});
+
+/* ---------- command handling ---------- */
+// Known site names → canonical URL. Anything not listed here falls back to a
+// Google search for the spoken/typed name (see resolveOpenTarget below).
+const KNOWN_SITES = {
+  youtube:   'https://www.youtube.com',
+  google:    'https://www.google.com',
+  github:    'https://github.com',
+  wikipedia: 'https://www.wikipedia.org',
+  chatgpt:   'https://chat.openai.com',
+  gmail:     'https://mail.google.com',
+  amazon:    'https://www.amazon.com',
+  facebook:  'https://www.facebook.com',
+  twitter:   'https://twitter.com',
+  x:         'https://x.com',
+  instagram: 'https://www.instagram.com',
+  reddit:    'https://www.reddit.com',
+  netflix:   'https://www.netflix.com',
+  spotify:   'https://open.spotify.com',
+  linkedin:  'https://www.linkedin.com'
+};
+const SITE_LABELS = {
+  youtube:'YouTube', google:'Google', github:'GitHub', wikipedia:'Wikipedia',
+  chatgpt:'ChatGPT', gmail:'Gmail', amazon:'Amazon', facebook:'Facebook',
+  twitter:'Twitter / X', x:'Twitter / X', instagram:'Instagram', reddit:'Reddit',
+  netflix:'Netflix', spotify:'Spotify', linkedin:'LinkedIn'
+};
+// Per-site search URL builders. This is what makes "open <site>" then
+// "search <query>" work as two separate voice turns: the second command
+// reuses whichever site was opened last (see state.lastSiteKey).
+const SEARCH_TEMPLATES = {
+  google:    q => `https://www.google.com/search?q=${encodeURIComponent(q)}`,
+  youtube:   q => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`,
+  github:    q => `https://github.com/search?q=${encodeURIComponent(q)}`,
+  wikipedia: q => `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(q)}`,
+  amazon:    q => `https://www.amazon.com/s?k=${encodeURIComponent(q)}`,
+  reddit:    q => `https://www.reddit.com/search/?q=${encodeURIComponent(q)}`,
+  spotify:   q => `https://open.spotify.com/search/${encodeURIComponent(q)}`,
+  twitter:   q => `https://twitter.com/search?q=${encodeURIComponent(q)}`,
+  linkedin:  q => `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(q)}`,
+  netflix:   q => `https://www.netflix.com/search?q=${encodeURIComponent(q)}`,
+  facebook:  q => `https://www.facebook.com/search/top?q=${encodeURIComponent(q)}`,
+  gmail:     q => `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(q)}`
+};
+// Explicit "search <site> for <query>" only recognizes this closed word
+// list — deliberately excludes the single-letter "x" alias so an ordinary
+// query like "search x y zed" is never misread as a site name.
+const SEARCH_SITE_WORDS = 'google|youtube|amazon|github|wikipedia|reddit|twitter|linkedin|netflix|facebook|gmail|spotify';
+
+function buildSearchUrl(key, query){
+  if(key && SEARCH_TEMPLATES[key]) return SEARCH_TEMPLATES[key](query);
+  if(key && key.includes('.')) return `https://www.google.com/search?q=${encodeURIComponent('site:' + key + ' ' + query)}`;
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+}
+function setSearchContext(key, label){
+  state.lastSiteKey = key;
+  state.lastSiteLabel = label;
+  $('searchContext').textContent = label ? `${label} — say "search <something>" to search it` : 'none yet — say "open <site>" first';
+}
+// For a bare domain like "amazon.in", check whether a known site name
+// appears inside it so "search <query>" afterward can use that site's
+// proper search endpoint instead of a generic Google fallback.
+function domainKey(host){
+  for(const k of Object.keys(SEARCH_TEMPLATES)){
+    if(host.includes(k)) return k;
+  }
+  return host;
+}
+
+// Resolves whatever followed "open " into either a direct URL (known site
+// name, or a bare domain like "amazon.in"/"example.com") or a Google search
+// fallback for anything else (e.g. "minecraft").
+function resolveOpenTarget(name){
+  const clean = name.trim().toLowerCase().replace(/[.!?]+$/,'');
+  const domainMatch = clean.match(/^(?:https?:\/\/)?(?:www\.)?([a-z0-9-]+(?:\.[a-z0-9-]+)+)(\/\S*)?$/i);
+  if(domainMatch){
+    const host = domainMatch[1];
+    return { type:'url', url:`https://${host}${domainMatch[2]||''}`, key:domainKey(host), label:host };
+  }
+  const words = clean.split(/\s+/);
+  for(const key of Object.keys(KNOWN_SITES)){
+    if(clean === key || words.includes(key)) return { type:'url', url:KNOWN_SITES[key], key, label:SITE_LABELS[key]||key };
+  }
+  return { type:'search', query:clean };
+}
+
+function handleCommand(raw){
+  const t = raw.toLowerCase();
+  let reply = null;
+
+  if(!state.power && !/start system|power on|turn on/.test(t)){
+    reply = 'System is powered down. Say "start system" to bring MK BOT back online.';
+  }
+  else if(/^open (.+)/.test(t)){
+    const target = t.match(/^open (.+)/)[1];
+    const resolved = resolveOpenTarget(target);
+    if(resolved.type === 'url'){
+      setSearchContext(resolved.key, resolved.label);
+      const label = resolved.url.replace(/^https?:\/\//,'');
+      if(openLink(resolved.url)){
+        reply = `Opening ${label} in a new tab. Say "search <something>" next to search ${resolved.label}.`;
+      } else {
+        reply = `Your browser blocked the automatic popup for ${label} — this happens with voice-triggered opens. Tap the link below.`;
+        addChatLink(resolved.url, label);
+      }
+    } else {
+      const url = buildSearchUrl('google', resolved.query);
+      setSearchContext('google', 'Google');
+      if(openLink(url)){
+        reply = `No direct link known for "${target}" — opened a Google search for it instead.`;
+      } else {
+        reply = `Your browser blocked that popup. Tap the link below.`;
+        addChatLink(url, `Google search for "${resolved.query}"`);
+      }
+    }
+  }
+  else if(new RegExp(`^search (?:on )?(${SEARCH_SITE_WORDS}) (?:for )?(.+)`).test(t)){
+    const m = t.match(new RegExp(`^search (?:on )?(${SEARCH_SITE_WORDS}) (?:for )?(.+)`));
+    const key = m[1], q = m[2];
+    const label = SITE_LABELS[key] || key;
+    const url = buildSearchUrl(key, q);
+    setSearchContext(key, label);
+    if(openLink(url)){
+      reply = `Searching ${label} for "${q}".`;
+    } else {
+      reply = `Your browser blocked that popup. Tap the link below.`;
+      addChatLink(url, `${label} search for "${q}"`);
+    }
+  }
+  else if(/^search (?:for )?(.+)/.test(t)){
+    const q = t.match(/^search (?:for )?(.+)/)[1];
+    const key = state.lastSiteKey || 'google';
+    const label = state.lastSiteLabel || 'Google';
+    const url = buildSearchUrl(key, q);
+    if(openLink(url)){
+      reply = `Searching ${label} for "${q}".`;
+    } else {
+      reply = `Your browser blocked that popup. Tap the link below.`;
+      addChatLink(url, `${label} search for "${q}"`);
+    }
+  }
+  else if(/stop system|power off|shut ?down|turn off/.test(t)){
+    reply = 'Powering down the terminal.';
+    setPower(false);
+  }
+  else if(/start system|power on|turn on/.test(t)){
+    reply = 'Bringing the terminal back online.';
+    setPower(true);
+  }
+  else if(/zoom in/.test(t)){
+    state.zoomMult = Math.min(1.8, state.zoomMult + 0.2);
+    reply = `Zoom increased to ${state.zoomMult.toFixed(1)}×.`;
+  }
+  else if(/zoom out/.test(t)){
+    state.zoomMult = Math.max(0.5, state.zoomMult - 0.2);
+    reply = `Zoom decreased to ${state.zoomMult.toFixed(1)}×.`;
+  }
+  else if(/rotate plasma|spin (the )?plasma|rotate core/.test(t)){
+    state.rotationMult = Math.min(3, state.rotationMult + 0.6);
+    reply = `Rotation increased to ${state.rotationMult.toFixed(1)}×. I can simulate the orb's motion here, but I can't drive physical hardware.`;
+  }
+  else if(/status|report/.test(t)){
+    reply = `All systems ${state.power ? 'nominal' : 'in standby'}. Neural core ${state.neural.toFixed(1)}%, gesture vision reading ${state.gesture}, core temperature ${Math.round(state.coreTemp).toLocaleString()}K.`;
+  }
+  else if(/clear (the )?(log|chat)/.test(t)){
+    clearLog();
+    reply = 'Event log cleared.';
+  }
+  else if(/hello|hi there|^hi$/.test(t)){
+    reply = 'Hello. MK BOT is online and listening.';
+  }
+  else if(/start camera|vision on/.test(t)){
+    reply = 'Starting the vision channel.';
+    if(!state.cameraOn) startCamera();
+  }
+  else if(/stop camera|vision off/.test(t)){
+    reply = 'Stopping the vision channel.';
+    stopCamera();
+  }
+  else{
+    reply = `Command recognized: ${raw.toLowerCase()}. I can log and simulate this here, but I can't directly control external hardware from this terminal.`;
+  }
+
+  addChat('MK', reply);
+  eventLog('Command: ' + raw);
+  speak(reply);
+}
+
+$('clearLogBtn').addEventListener('click', clearLog);
+function clearLog(){
+  $('eventLog').innerHTML = '';
+  eventLog('Log cleared');
+}
+
+/* ---------- plasma canvas ---------- */
+const canvas = $('plasmaCanvas');
+const ctx = canvas.getContext('2d');
+let rotation = 0;
+const filaments = Array.from({length:7}, (_,i)=>({
+  offset: (i / 7) * Math.PI * 2,
+  wobble: Math.random()*Math.PI*2,
+  len: 0.7 + Math.random()*0.25
+}));
+
+function drawPlasma(){
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const cx = W/2, cy = H/2;
+  const baseR = (W/2) * 0.86 * state.zoomMult;
+
+  // outer glow
+  const glow = ctx.createRadialGradient(cx,cy,baseR*0.2,cx,cy,baseR*1.15);
+  const hue = state.power ? 190 - (state.coreTemp-3000)/60 : 220;
+  glow.addColorStop(0, `hsla(${hue},100%,92%,0.9)`);
+  glow.addColorStop(0.35, `hsla(${hue-10},100%,65%,0.55)`);
+  glow.addColorStop(0.7, `hsla(${hue-20},100%,35%,0.28)`);
+  glow.addColorStop(1, 'hsla(200,100%,10%,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath(); ctx.arc(cx,cy,baseR*1.15,0,Math.PI*2); ctx.fill();
+
+  // sphere body
+  const body = ctx.createRadialGradient(cx-baseR*0.2,cy-baseR*0.25,baseR*0.05,cx,cy,baseR);
+  body.addColorStop(0,'#ffffff');
+  body.addColorStop(0.12,'#c9f9ff');
+  body.addColorStop(0.32,`hsl(${hue},100%,60%)`);
+  body.addColorStop(0.6,`hsl(${hue-15},100%,32%)`);
+  body.addColorStop(1,'rgba(3,10,25,0.15)');
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx,cy,baseR,0,Math.PI*2); ctx.clip();
+  ctx.fillStyle = body;
+  ctx.fillRect(cx-baseR,cy-baseR,baseR*2,baseR*2);
+
+  // filaments
+  const speed = state.power ? state.rotationMult : 0;
+  filaments.forEach(f=>{
+    const ang = rotation*speed*0.02 + f.offset + Math.sin(rotation*0.01+f.wobble)*0.25;
+    const grad = ctx.createLinearGradient(cx,cy,cx+Math.cos(ang)*baseR*f.len,cy+Math.sin(ang)*baseR*f.len);
+    grad.addColorStop(0,'rgba(255,255,255,0.95)');
+    grad.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    const midAng = ang + Math.sin(rotation*0.03+f.wobble)*0.15;
+    const midR = baseR*f.len*0.55;
+    ctx.quadraticCurveTo(
+      cx+Math.cos(midAng)*midR, cy+Math.sin(midAng)*midR,
+      cx+Math.cos(ang)*baseR*f.len, cy+Math.sin(ang)*baseR*f.len
+    );
+    ctx.stroke();
+  });
+  ctx.restore();
+
+  // core
+  const coreR = baseR*0.22;
+  const core = ctx.createRadialGradient(cx,cy,0,cx,cy,coreR*1.6);
+  core.addColorStop(0,'#ffffff');
+  core.addColorStop(0.5,'#eafcff');
+  core.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle = core;
+  ctx.beginPath(); ctx.arc(cx,cy,coreR*1.6,0,Math.PI*2); ctx.fill();
+
+  // outer ring
+  ctx.strokeStyle = `rgba(103,232,249,${state.power?0.45:0.15})`;
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx,cy,baseR*1.08,rotation*0.01,rotation*0.01+Math.PI*1.5); ctx.stroke();
+
+  rotation += 1;
+  requestAnimationFrame(drawPlasma);
+}
+requestAnimationFrame(drawPlasma);
+
+/* ---------- telemetry + footer animation ---------- */
+setInterval(()=>{
+  if(!state.power) return;
+  state.neural = 96 + Math.random()*3;
+  state.latency = 30 + Math.round(Math.random()*40);
+  state.coreTemp += (Math.random()-0.5)*40;
+  state.coreTemp = Math.max(3200, Math.min(4200, state.coreTemp));
+
+  $('mNeural').innerHTML = state.neural.toFixed(1) + '<small>%</small>';
+  $('tNeural').style.width = state.neural + '%';
+  $('mLatency').innerHTML = String(state.latency).padStart(3,'0') + '<small>ms</small>';
+  $('tLatency').style.width = Math.min(100, state.latency) + '%';
+
+  $('mMic').textContent = state.listening ? 'LISTENING' : (state.power ? 'READY' : 'IDLE');
+  $('tMic').style.width = (state.listening ? 60 + Math.random()*35 : 8) + '%';
+
+  $('mGesture').textContent = state.cameraOn ? state.gesture : 'IDLE';
+  $('tGesture').style.width = (state.cameraOn ? Math.max(20, state.visionScore) : 8) + '%';
+
+  $('footerRotation').textContent = state.rotationMult.toFixed(1);
+  $('footerZoom').textContent = state.zoomMult.toFixed(1);
+  $('footerTemp').textContent = Math.round(state.coreTemp).toLocaleString() + 'K';
+}, 700);
+
+/* ---------- init ---------- */
+applyGesture('OPEN HAND', {silent:true});
+eventLog('Interface initialized');
+setPower(true);
+})();
+</script>
+</body>
+</html>
